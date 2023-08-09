@@ -18,6 +18,12 @@
         <a asp-controller="Employee" asp-action="Create" class="btn btn-lg btn-primary"><i class="bi bi-file-plus-fill"></i>Add Employee</a>
     </div>
     <div class="col-md-12">
+        <div class="input-group mb-3">
+            <input id="searchInput" type="text" class="form-control" placeholder="Search...">
+            <button id="searchButton" class="btn btn-primary">Search</button>
+        </div>
+    </div>
+    <div class="col-md-12">
         <p>Kendo UI version<strong id="kendoVersion"></strong></p>
 
         @*Kendo Grid Example*@
@@ -26,7 +32,7 @@
         </div>
 
     </div>
-    <div>
+  @*<div>
         @using (Html.BeginForm("Index","Employee",FormMethod.Get))
         {
             <table>
@@ -92,48 +98,129 @@
                 </tr>
             }
         </tbody>
-    </table>
+    </table>*@
 </div>
+
+
+
+
+
+
 <script type="text/javascript">
-    $(document).ready(function(){
+    $(document).ready(function () {
         $("#kendoVersion").text(kendo.version);
+        $("#searchButton").on("click", function () {
+            var grid = $("#grid").data("kendoGrid");
+            grid.dataSource.read();
+        });
 
         $("#grid").kendoGrid({
             dataSource: {
-                transport:{
-                    read:{
+                transport: {
+                    /*read: {
                         url: "Employee/GetGridData",
-                        dataType:"json"
+                        dataType: "json",
+                        data: function () {
+                            return {
+                                searchQuery: $("#searchInput").val()
+                            };
+                        }
+                    },*/
+                    read: function (options) {
+                        var searchQuery = $("#searchInput").val();
+                        var url = "Employee/GetGridData";
+
+                        if (searchQuery) {
+                            url += "?searchQuery=" + searchQuery;
+                        }
+
+                        $.ajax({
+                            url: url,
+                            dataType: "json",
+                            success: function (result) {
+                                options.success(result);
+                            }
+                        });
+                    },
+                    destroy: {
+                        url: function (data) {
+                            return "Employee/DeleteEmployee/" + data.id;
+                        },
+                        dataType: "json",
+                        type: "POST"
+                    }
+                },
+                schema: {
+                    model: {
+                        id: "id",
+                        fields: {
+                            id: { editable: false },
+                            name: { validation: { required: true } },
+                            designation: { editable: true },
+                            address: { editable: true }
+                        }
                     }
                 }
-
             },
-            
-                filterable: true,
+            filterable: true,
             sortable: true,
-            columns:CustomerHelper.GenerateColumns(),
-            editable : false,
-            navigatable: true,
-            selectable: "row"
-
+            columns: CustomerHelper.GenerateColumns(),
+            editable: "inline",
+           // toolbar: [{ name : "create" }],
+         
+            pageable: true
         });
-    
-    
-    
+
+        $("#grid").data("kendoGrid").bind("dataBound", function () {
+            $(".edit-button").on("click", function (e) {
+                e.preventDefault();
+                var dataItem = $("#grid").data("kendoGrid").dataItem($(e.currentTarget).closest("tr"));
+                if (dataItem) {
+                    var id = dataItem.id;
+                    if (id) {
+                        window.location.href = "/Employee/Edit/" + id;
+                    }
+                }
+            });
+        });
     });
+
     var CustomerHelper = {
-        GenerateColumns: function() {
-            return columns =[
-                {field:"id", title:"ID", width:40, editable:false},
-                 {field:"name", title:"Name", width:60, editable:true},
-                  {field:"designation", title:"Company", width:60, editable:false},
-                { field: "address", title: "Address", width: 60, editable: false },
-            ]
-
+        GenerateColumns: function () {
+            return [
+                { field: "id", title: "ID", width: 40, editable: false },
+                { field: "name", title: "Name", width: 60, editable: true },
+                { field: "designation", title: "Company", width: 60, editable: true },
+                { field: "address", title: "Address", width: 60, editable: true },
+                {
+                    command: [
+                        {
+                            template: '<a href="javascript:void(0);" class="btn btn-sm btn-primary edit-button"><i class="bi bi-pencil-square"></i>Edit</a>',
+                            title: "Edit"
+                        },
+                        {
+                            name: "destroy",
+                            text: "Delete",
+                            click: function (e) {
+                                e.preventDefault();
+                                var dataItem = this.dataItem($(e.currentTarget).closest("tr"));
+                                if (confirm("Are you sure you want to delete this record?")) {
+                                    $("#grid").data("kendoGrid").dataSource.remove(dataItem);
+                                    $("#grid").data("kendoGrid").dataSource.sync();
+                                }
+                            }
+                        }
+                    ],
+                    title: "&nbsp;",
+                    width: "160px"
+                }
+            ];
         },
-
-       
-    }
-
-
+    };
 </script>
+
+
+
+
+
+

@@ -1,6 +1,7 @@
 ﻿using EmployeeCRUD.Data;
 using EmployeeCRUD.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace EmployeeCRUD.Controllers
 {
@@ -42,13 +43,30 @@ namespace EmployeeCRUD.Controllers
             return View(objCatlist);
         }
 
-        public IActionResult GetGridData()
+        /*        public IActionResult GetGridData()
+                {
+                    IEnumerable<Employee> objCatlist1 = _context.Employees;
+                    var data = objCatlist1;
+
+                    return Json(data);
+                }*/
+
+        public IActionResult GetGridData(string searchQuery)
         {
-            IEnumerable<Employee> objCatlist1 = _context.Employees;
-            var data = objCatlist1;
-           
-            return Json(data);
+            IQueryable<Employee> employeesQuery = _context.Employees;
+
+            if (!string.IsNullOrEmpty(searchQuery))
+            {
+                employeesQuery = employeesQuery
+                    .Where(e => e.Name.Contains(searchQuery) || e.Designation.Contains(searchQuery) || e.Address.Contains(searchQuery));
+            }
+
+            var employees = employeesQuery.ToList();
+
+            return Json(employees);
         }
+
+
 
         public IActionResult Create()
         {
@@ -129,6 +147,23 @@ namespace EmployeeCRUD.Controllers
             TempData["ResultOk"] = "Data Deleted Successfully !";
             return RedirectToAction("Index");
         }
+
+
+
+        [HttpPost]
+        public IActionResult DeleteEmployee(int id)
+        {
+            var empobj = _context.Employees.Find(id);
+            if (empobj != null)
+            {
+                _context.Employees.Remove(empobj);
+                _context.SaveChanges();
+                return Json(new { success = true });
+            }
+
+            return Json(new { success = false });
+        }
+
 
 
     }
