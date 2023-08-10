@@ -28,78 +28,78 @@
 
         @*Kendo Grid Example*@
         <div id="grid">
-
         </div>
 
     </div>
-  @*<div>
-        @using (Html.BeginForm("Index","Employee",FormMethod.Get))
-        {
-            <table>
-                <tr>
-                    <td>
-                        <span><b>Search By:</b></span>
-                        @Html.RadioButton("searchBy","Name",true)
-                        <text>Employee Name</text>
-                        @Html.RadioButton("searchBy","Designation")
-                        <text>Designation</text>
-                        @Html.RadioButton("searchBy","Address")
-                        <text>Location</text>
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                    @Html.TextBox("searchValue",null, new{Class = "form-control", placeholder="Enter employee or desination or location"})
-                    </td>
-                    <td>
-                        &nbsp;
-                    </td>
-                    <td>
-                        <input type="submit" value="Search" class="btn btn-success" />
-                    </td>
-                </tr>
-            </table>
-        }
-    </div>
-    <br>
+    @*  <div>
+    @using (Html.BeginForm("Index","Employee",FormMethod.Get))
+    {
+    <table>
+    <tr>
+    <td>
+    <span><b>Search By:</b></span>
+    @Html.RadioButton("searchBy","Name",true)
+    <text>Employee Name</text>
+    @Html.RadioButton("searchBy","Designation")
+    <text>Designation</text>
+    @Html.RadioButton("searchBy","Address")
+    <text>Location</text>
+    </td>
+    </tr>
+    <tr>
+    <td>
+    @Html.TextBox("searchValue",null, new{Class = "form-control", placeholder="Enter employee or desination or location"})
+    </td>
+    <td>
+    &nbsp;
+    </td>
+    <td>
+    <input type="submit" value="Search" class="btn btn-success" />
+    </td>
+    </tr>
+    </table>
+    }
+    </div>*@
+    @*  <br>
     <table class="table table-bordered table-hover">
-        <thead>
-            <tr>
-                <th scope="col">Employee Name</th>
-                <th scope="col">Designation</th>
-                <th scope="col">Address</th>
-                <th scope="col">CreatedOn</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
+    <thead>
+    <tr>
+    <th scope="col">Employee Name</th>
+    <th scope="col">Designation</th>
+    <th scope="col">Address</th>
+    <th scope="col">CreatedOn</th>
+    <th></th>
+    </tr>
+    </thead>
+    <tbody>
 
-            @foreach (var item in Model)
-            {
-                <tr>
-                    <td width="20%">
-                        @item.Name
-                    </td>
-                    <td width="20%">
-                        @item.Designation
-                    </td>
-                    <td width="25%">
-                        @item.Address
-                    </td>
-                    <td width="20%">
-                        @item.RecordCreatedOn
-                    </td>
-                    <td>
-                        <div role="group" class="w-60 btn-group">
-                            <a asp-controller="Employee" asp-action="Edit" asp-route-id="@item.Id" class=" btn btn-sm btn-primary"><i class="bi bi-pencil-square"></i>Edit</a>&nbsp;
-                            <a asp-controller="Employee" asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-danger"><i class="bi bi-trash-fill"></i>Delete</a>
-                        </div>
-                    </td>
-                </tr>
-            }
-        </tbody>
+    @foreach (var item in Model)
+    {
+    <tr>
+    <td width="20%">
+    @item.Name
+    </td>
+    <td width="20%">
+    @item.Designation
+    </td>
+    <td width="25%">
+    @item.Address
+    </td>
+    <td width="20%">
+    @item.RecordCreatedOn
+    </td>
+    <td>
+    <div role="group" class="w-60 btn-group">
+    <a asp-controller="Employee" asp-action="Edit" asp-route-id="@item.Id" class=" btn btn-sm btn-primary"><i class="bi bi-pencil-square"></i>Edit</a>&nbsp;
+    <a asp-controller="Employee" asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-danger"><i class="bi bi-trash-fill"></i>Delete</a>
+    </div>
+    </td>
+    </tr>
+    }
+    </tbody>
     </table>*@
 </div>
+
 
 
 
@@ -109,23 +109,41 @@
 <script type="text/javascript">
     $(document).ready(function () {
         $("#kendoVersion").text(kendo.version);
+
         $("#searchButton").on("click", function () {
             var grid = $("#grid").data("kendoGrid");
             grid.dataSource.read();
         });
 
+
+        $("#grid").on("click", ".delete-button", function (e) {
+            e.preventDefault();
+            var dataItem = $("#grid").data("kendoGrid").dataItem($(e.currentTarget).closest("tr"));
+            if (confirm("Are you sure you want to delete this record?")) {
+                $.ajax({
+                    url: "/Employee/DeleteEmployee",
+                    type: "POST",
+                    data: { id: dataItem.id },
+                    dataType: "json",
+                    success: function (result) {
+                        if (result.success) {
+                            // Manually refresh the grid's data after successful delete
+                            $("#grid").data("kendoGrid").dataSource.read();
+                        } else {
+                            alert("Delete operation failed.");
+                        }
+                    },
+                    error: function () {
+                        alert("An error occurred while attempting to delete.");
+                    }
+                });
+            }
+        });
+
+
         $("#grid").kendoGrid({
             dataSource: {
                 transport: {
-                    /*read: {
-                        url: "Employee/GetGridData",
-                        dataType: "json",
-                        data: function () {
-                            return {
-                                searchQuery: $("#searchInput").val()
-                            };
-                        }
-                    },*/
                     read: function (options) {
                         var searchQuery = $("#searchInput").val();
                         var url = "Employee/GetGridData";
@@ -141,13 +159,14 @@
                                 options.success(result);
                             }
                         });
+
                     },
                     destroy: {
                         url: function (data) {
-                            return "Employee/DeleteEmployee/" + data.id;
+                            return "Employee/Delete/" + data.id;
                         },
                         dataType: "json",
-                        type: "POST"
+                        type: "DELETE"
                     }
                 },
                 schema: {
@@ -166,58 +185,98 @@
             sortable: true,
             columns: CustomerHelper.GenerateColumns(),
             editable: "inline",
-           // toolbar: [{ name : "create" }],
-         
             pageable: true
         });
 
-        $("#grid").data("kendoGrid").bind("dataBound", function () {
-            $(".edit-button").on("click", function (e) {
-                e.preventDefault();
-                var dataItem = $("#grid").data("kendoGrid").dataItem($(e.currentTarget).closest("tr"));
-                if (dataItem) {
-                    var id = dataItem.id;
-                    if (id) {
-                        window.location.href = "/Employee/Edit/" + id;
-                    }
-                }
-            });
+        var activeCell = null;
+
+        // Attach event handlers to cells in the "Name," "Designation," and "Address" columns
+        $("#grid").on("click", ".name-cell, .designation-cell, .address-cell", function () {
+            $(".edit-button, .delete-button").remove();
+            $(".edit-delete-cell.active").removeClass("active");
+
+            var cell = $(this).find(".edit-delete-cell");
+            if (activeCell && activeCell[0] === cell[0]) {
+                activeCell = null;
+            } else {
+                activeCell = cell;
+                cell.addClass("active");
+                cell.append('<a href="javascript:void(0);" class="btn btn-sm btn-primary edit-button"><i class="bi bi-pencil-square"></i>Edit</a><a href="javascript:void(0);" class="btn btn-sm btn-danger delete-button"><i class="bi bi-trash"></i>Delete</a>');
+            }
         });
+
+        // Attach event handlers to the buttons
+        $("#grid").on("click", ".edit-button", function (e) {
+            e.preventDefault();
+            var dataItem = $("#grid").data("kendoGrid").dataItem($(e.currentTarget).closest("tr"));
+            if (dataItem) {
+                var id = dataItem.id;
+                if (id) {
+                    window.location.href = "/Employee/Edit/" + id;
+                }
+            }
+        });
+
+        /*  $("#grid").on("click", ".delete-button", function (e) {
+              e.preventDefault();
+              var dataItem = $("#grid").data("kendoGrid").dataItem($(e.currentTarget).closest("tr"));
+              if (confirm("Are you sure you want to delete this record?")) {
+                  $("#grid").data("kendoGrid").dataSource.remove(dataItem);
+                  $("#grid").data("kendoGrid").dataSource.sync();
+              }
+          });*/
     });
 
     var CustomerHelper = {
         GenerateColumns: function () {
             return [
                 { field: "id", title: "ID", width: 40, editable: false },
-                { field: "name", title: "Name", width: 60, editable: true },
-                { field: "designation", title: "Company", width: 60, editable: true },
-                { field: "address", title: "Address", width: 60, editable: true },
                 {
-                    command: [
-                        {
-                            template: '<a href="javascript:void(0);" class="btn btn-sm btn-primary edit-button"><i class="bi bi-pencil-square"></i>Edit</a>',
-                            title: "Edit"
-                        },
-                        {
-                            name: "destroy",
-                            text: "Delete",
-                            click: function (e) {
-                                e.preventDefault();
-                                var dataItem = this.dataItem($(e.currentTarget).closest("tr"));
-                                if (confirm("Are you sure you want to delete this record?")) {
-                                    $("#grid").data("kendoGrid").dataSource.remove(dataItem);
-                                    $("#grid").data("kendoGrid").dataSource.sync();
-                                }
-                            }
-                        }
-                    ],
-                    title: "&nbsp;",
-                    width: "160px"
+                    field: "name",
+                    title: "Name",
+                    width: 60,
+                    template: '<div class="name-cell">#=name#<div class="edit-delete-cell"></div></div>',
+                    editable: true
+                },
+                {
+                    field: "designation",
+                    title: "Company",
+                    width: 60,
+                    template: '<div class="designation-cell">#=designation#<div class="edit-delete-cell"></div></div>',
+                    editable: true
+                },
+                {
+                    field: "address",
+                    title: "Address",
+                    width: 60,
+                    template: '<div class="address-cell">#=address#<div class="edit-delete-cell"></div></div>',
+                    editable: true
                 }
             ];
-        },
+        }
     };
 </script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
